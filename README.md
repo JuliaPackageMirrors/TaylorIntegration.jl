@@ -15,6 +15,10 @@ Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 
 Comments, suggestions, and improvements are welcome and appreciated.
 
+#### Basic usage
+
+...
+
 #### Examples
 
 + [x'=x^2](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
