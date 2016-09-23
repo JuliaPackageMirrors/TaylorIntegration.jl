@@ -57,6 +57,10 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
     nothing
 end
 
+docs"""
+Experimental version of jetcoeffs!, will be better
+documented in the future, if it works well. -JAPH
+"""
 function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}},
     xdot::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}})
 
@@ -170,7 +174,18 @@ function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T
     return δt
 end
 
-function taylorstep!{T<:Number}(f, t0::T, xT::Array{Taylor1{T}},
+doc"""
+    WARNING! CURRENT STATUS: EXPERIMENTAL:
+    taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1}, xT::Array{Taylor1{T}},
+            xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
+
+    Executes an iteration of a Taylor method integration. Same as similar
+    method of taylorstep!, but passes as much data as possible by reference,
+    instead of allocating new arrays and returning them. Note the use of
+    `evaluate2!` (also experimental), instead of `TaylorSeries.evaluate!`.  -JAPH
+
+"""
+function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, xT::Array{Taylor1{T}},
     xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
     # Initialize the vector of Taylor1 expansions
     #xT = Array{Taylor1{T}}(length(x0))
@@ -181,7 +196,7 @@ function taylorstep!{T<:Number}(f, t0::T, xT::Array{Taylor1{T}},
     jetcoeffs!(f, t0, xT, xdotT, xaux)
     # Compute the step-size of the integration using `abs_tol`
     δt = stepsize(xT, abs_tol)
-    evaluate!(xT, δt, x0)
+    evaluate2!(xT, δt, x0)
     return δt
 end
 
@@ -245,7 +260,18 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
     return δt
 end
 
-function taylorstep!{T<:Number}(f, t0::T, t1::T, xT::Array{Taylor1{T}},
+doc"""
+    WARNING! CURRENT STATUS: EXPERIMENTAL:
+    taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1}, xT::Array{Taylor1{T}},
+            xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
+
+    Executes an iteration of a Taylor method integration. Same as similar
+    method of taylorstep!, but passes as much data as possible by reference,
+    instead of allocating new arrays and returning them. Note the use of
+    `evaluate2!` (also experimental), instead of `TaylorSeries.evaluate!`.  -JAPH
+
+"""
+function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1}, xT::Array{Taylor1{T}},
         xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
     @assert t1 > t0
     # Initialize the vector of Taylor1 expansions
@@ -260,7 +286,8 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, xT::Array{Taylor1{T}},
     if δt ≥ t1-t0
         δt = t1-t0
     end
-    evaluate!(xT, δt, x0)
+    #use experimental method evaluate2!
+    evaluate2!(xT, δt, x0)
     return δt
 end
 
@@ -367,6 +394,42 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
     return view(tv,1:nsteps), view(xv',1:nsteps,:)
 end
 
+doc"""
+    WARNING: CURRENT STATUS: EXPERIMENTAL
+    evaluate2!{T<:Number}(x::Array{Taylor1{T},1}, δt::T, x0::Array{T,1})
+
+This method is similar to TaylorSeries.evaluate! (see docs), the only difference is
+that after evaluating the Taylor expansion into `x0`, the values are copied
+back into the `Taylor1` array `x`. This is aimed towards improving performance
+and should avoid the necessity of creating new arrays, pass most data by reference,
+and helps to pass the same object `x` (a Taylor1 array) among taylorinteg,
+taylorstep!, and jetcoeffs!. If this change happens to improve performance, it
+will be better documented in the near future. -JAPH
+"""
+function evaluate2!{T<:Number}(x::Array{Taylor1{T},1}, δt::T, x0::Array{T,1})
+            #making sure of safe use of inbounds
+           @assert length(x) == length(x0)
+           #evaluate Taylor expansions, put the result into x0.
+           @inbounds for i in eachindex(x)
+               x0[i] = evaluate( x[i], δt )
+           end
+           #for each element, copy x0 into first coeff of x.
+           @inbounds for i in eachindex(x)
+               x[i].coeffs[1] = x0[i]
+           end
+          nothing
+end
+
+doc"""
+    WARNING: CURRENT STATUS: EXPERIMENTAL
+    taylorinteg2{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T, order::Int, abs_tol::T; maxsteps::Int=500)
+
+This method is an experiment directed towards improving performance of
+`TaylorIntegration.jl`. It is essentially the same as `taylorinteg` (see docs),
+but tries to pass as much data as possible by reference, instead of creating
+new arrays along the way. If this change happens to improve performance, it
+will be better documented in the near future. -JAPH
+"""
 function taylorinteg2{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
         order::Int, abs_tol::T; maxsteps::Int=500)
 
@@ -393,20 +456,20 @@ function taylorinteg2{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
     nsteps = 1
     while t0 < t_max
         xold = x0
-        δt = taylorstep!(f, t0, x0T, xdotT, xaux, order, abs_tol)
+        δt = taylorstep!(f, t0, x0, x0T, xdotT, xaux, order, abs_tol)
         if t0+δt ≥ t_max
             x0 = xold
-            δt = taylorstep!(f, t0T, t_max, x0T, xdotT, xaux, order, abs_tol)
+            δt = taylorstep!(f, t0T, t_max, x0, x0T, xdotT, xaux, order, abs_tol)
             t0 = t_max
             nsteps += 1
             @inbounds tv[nsteps] = t0
-            @inbounds xv[:,nsteps] = map(x->x.coeffs[1], x0T)
+            @inbounds xv[:,nsteps] = x0[:]
             break
         end
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[:,nsteps] = map(x->x.coeffs[1], x0T)
+        @inbounds xv[:,nsteps] = x0[:]
         if nsteps > maxsteps
             warn("""
             Maximum number of integration steps reached; exiting.
