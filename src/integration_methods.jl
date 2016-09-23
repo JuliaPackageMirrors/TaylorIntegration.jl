@@ -57,6 +57,29 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
     nothing
 end
 
+function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}}, xdot::Vector{Taylor1{T}})
+    order = x[1].order
+    xaux = similar(x)
+    for ord in 1:order
+        ordnext = ord+1
+
+        # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
+        @inbounds for j in eachindex(x)
+            xaux[j] = Taylor1( x[j].coeffs[1:ord] )
+        end
+
+        # Equations of motion
+        # TODO! define a macro to optimize the eqsdiff
+        eqsdiff(t0, xaux, xdot)
+
+        # Recursion relations
+        @inbounds for j in eachindex(x)
+            x[j].coeffs[ordnext] = xdot[j].coeffs[ord]/ord
+        end
+    end
+    nothing
+end
+
 
 # stepsize
 doc"""
@@ -139,6 +162,20 @@ function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T
     end
     # Compute the Taylor coefficients
     jetcoeffs!(f, t0, xT)
+    # Compute the step-size of the integration using `abs_tol`
+    δt = stepsize(xT, abs_tol)
+    evaluate!(xT, δt, x0)
+    return δt
+end
+
+function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, xdotT::Array{Taylor1{T},1}, order::Int, abs_tol::T)
+    # Initialize the vector of Taylor1 expansions
+    xT = Array{Taylor1{T}}(length(x0))
+    for i in eachindex(x0)
+        @inbounds xT[i] = Taylor1( x0[i], order )
+    end
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT, xdotT)
     # Compute the step-size of the integration using `abs_tol`
     δt = stepsize(xT, abs_tol)
     evaluate!(xT, δt, x0)
@@ -286,6 +323,50 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
         if t0+δt ≥ t_max
             x0 = xold
             δt = taylorstep!(f, t0, t_max, x0, order, abs_tol)
+            t0 = t_max
+            nsteps += 1
+            @inbounds tv[nsteps] = t0
+            @inbounds xv[:,nsteps] = x0[:]
+            break
+        end
+        t0 += δt
+        nsteps += 1
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[:,nsteps] = x0[:]
+        if nsteps > maxsteps
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    #return tv, xv'
+    return view(tv,1:nsteps), view(xv',1:nsteps,:)
+end
+
+function taylorinteg2{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
+        order::Int, abs_tol::T; maxsteps::Int=500)
+
+    # Allocation
+    tv = Array{T}(maxsteps+1)
+    dof = length(q0)
+    xv = Array{eltype(q0)}(dof, maxsteps+1)
+    xdotT = Array{Taylor1{eltype(q0)}}(dof)
+
+    # Initial conditions
+    @inbounds tv[1] = t0
+    @inbounds xv[:,1] = q0[:]
+    x0 = copy(q0)
+
+    # Integration
+    nsteps = 1
+    while t0 < t_max
+        xold = x0
+        δt = taylorstep!(f, t0, x0, xdotT, order, abs_tol)
+        if t0+δt ≥ t_max
+            x0 = xold
+            δt = taylorstep!(f, t0, t_max, x0, xdotT, order, abs_tol)
             t0 = t_max
             nsteps += 1
             @inbounds tv[nsteps] = t0
