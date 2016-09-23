@@ -242,6 +242,25 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
     return δt
 end
 
+function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
+        xdotT::Array{Taylor1{T},1}, order::Int, abs_tol::T)
+    @assert t1 > t0
+    # Initialize the vector of Taylor1 expansions
+    xT = Array{Taylor1{T}}(length(x0))
+    for i in eachindex(x0)
+        @inbounds xT[i] = Taylor1( x0[i], order )
+    end
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT, xdotT)
+    # Compute the step-size of the integration using `abs_tol`
+    δt = stepsize(xT, abs_tol)
+    if δt ≥ t1-t0
+        δt = t1-t0
+    end
+    evaluate!(xT, δt, x0)
+    return δt
+end
+
 
 # taylorinteg
 doc"""
