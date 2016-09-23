@@ -57,9 +57,11 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
     nothing
 end
 
-function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}}, xdot::Vector{Taylor1{T}})
+function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}},
+    xdot::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}})
+
     order = x[1].order
-    xaux = similar(x)
+    #xaux = similar(x)
     for ord in 1:order
         ordnext = ord+1
 
@@ -168,14 +170,14 @@ function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T
     return δt
 end
 
-function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, xdotT::Array{Taylor1{T},1}, order::Int, abs_tol::T)
+function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
     # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )
     end
     # Compute the Taylor coefficients
-    jetcoeffs!(f, t0, xT, xdotT)
+    jetcoeffs!(f, t0, xT, xdotT, xaux)
     # Compute the step-size of the integration using `abs_tol`
     δt = stepsize(xT, abs_tol)
     evaluate!(xT, δt, x0)
@@ -243,7 +245,7 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
 end
 
 function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
-        xdotT::Array{Taylor1{T},1}, order::Int, abs_tol::T)
+        xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
     @assert t1 > t0
     # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
@@ -251,7 +253,7 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
         @inbounds xT[i] = Taylor1( x0[i], order )
     end
     # Compute the Taylor coefficients
-    jetcoeffs!(f, t0, xT, xdotT)
+    jetcoeffs!(f, t0, xT, xdotT, xaux)
     # Compute the step-size of the integration using `abs_tol`
     δt = stepsize(xT, abs_tol)
     if δt ≥ t1-t0
@@ -372,6 +374,8 @@ function taylorinteg2{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
     dof = length(q0)
     xv = Array{eltype(q0)}(dof, maxsteps+1)
     xdotT = Array{Taylor1{eltype(q0)}}(dof)
+    #xaux = similar(x)
+    xaux = Array{Taylor1{eltype(q0)}}(dof)
 
     # Initial conditions
     @inbounds tv[1] = t0
@@ -382,10 +386,10 @@ function taylorinteg2{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
     nsteps = 1
     while t0 < t_max
         xold = x0
-        δt = taylorstep!(f, t0, x0, xdotT, order, abs_tol)
+        δt = taylorstep!(f, t0, x0, xdotT, xaux, order, abs_tol)
         if t0+δt ≥ t_max
             x0 = xold
-            δt = taylorstep!(f, t0, t_max, x0, xdotT, order, abs_tol)
+            δt = taylorstep!(f, t0, t_max, x0, xdotT, xaux, order, abs_tol)
             t0 = t_max
             nsteps += 1
             @inbounds tv[nsteps] = t0
