@@ -57,7 +57,7 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
     nothing
 end
 
-docs"""
+doc"""
 Experimental version of jetcoeffs!, will be better
 documented in the future, if it works well. -JAPH
 """
