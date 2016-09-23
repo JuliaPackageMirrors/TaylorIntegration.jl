@@ -459,7 +459,7 @@ function taylorinteg2{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
         δt = taylorstep!(f, t0, x0, x0T, xdotT, xaux, order, abs_tol)
         if t0+δt ≥ t_max
             x0 = xold
-            δt = taylorstep!(f, t0T, t_max, x0, x0T, xdotT, xaux, order, abs_tol)
+            δt = taylorstep!(f, t0, t_max, x0, x0T, xdotT, xaux, order, abs_tol)
             t0 = t_max
             nsteps += 1
             @inbounds tv[nsteps] = t0
