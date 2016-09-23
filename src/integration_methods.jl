@@ -170,12 +170,13 @@ function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T
     return δt
 end
 
-function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
+function taylorstep!{T<:Number}(f, t0::T, xT::Array{Taylor1{T}},
+    xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{T}}(length(x0))
-    for i in eachindex(x0)
-        @inbounds xT[i] = Taylor1( x0[i], order )
-    end
+    #xT = Array{Taylor1{T}}(length(x0))
+    # for i in eachindex(x0)
+    #     @inbounds xT[i] = Taylor1( x0[i], order )
+    # end
     # Compute the Taylor coefficients
     jetcoeffs!(f, t0, xT, xdotT, xaux)
     # Compute the step-size of the integration using `abs_tol`
@@ -244,14 +245,14 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
     return δt
 end
 
-function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
+function taylorstep!{T<:Number}(f, t0::T, t1::T, xT::Array{Taylor1{T}},
         xdotT::Array{Taylor1{T},1}, xaux::Array{Taylor1{T},1}, order::Int, abs_tol::T)
     @assert t1 > t0
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{T}}(length(x0))
-    for i in eachindex(x0)
-        @inbounds xT[i] = Taylor1( x0[i], order )
-    end
+    # xT = Array{Taylor1{T}}(length(x0))
+    # for i in eachindex(x0)
+    #     @inbounds xT[i] = Taylor1( x0[i], order )
+    # end
     # Compute the Taylor coefficients
     jetcoeffs!(f, t0, xT, xdotT, xaux)
     # Compute the step-size of the integration using `abs_tol`
@@ -382,24 +383,30 @@ function taylorinteg2{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
     @inbounds xv[:,1] = q0[:]
     x0 = copy(q0)
 
+    # Initialize the vector of Taylor1 expansions
+    x0T = Array{Taylor1{T}}(length(x0))
+    for i in eachindex(x0)
+        @inbounds x0T[i] = Taylor1( x0[i], order )
+    end
+
     # Integration
     nsteps = 1
     while t0 < t_max
         xold = x0
-        δt = taylorstep!(f, t0, x0, xdotT, xaux, order, abs_tol)
+        δt = taylorstep!(f, t0, x0T, xdotT, xaux, order, abs_tol)
         if t0+δt ≥ t_max
             x0 = xold
-            δt = taylorstep!(f, t0, t_max, x0, xdotT, xaux, order, abs_tol)
+            δt = taylorstep!(f, t0T, t_max, x0T, xdotT, xaux, order, abs_tol)
             t0 = t_max
             nsteps += 1
             @inbounds tv[nsteps] = t0
-            @inbounds xv[:,nsteps] = x0[:]
+            @inbounds xv[:,nsteps] = map(x->x.coeffs[1], x0T)
             break
         end
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[:,nsteps] = x0[:]
+        @inbounds xv[:,nsteps] = map(x->x.coeffs[1], x0T)
         if nsteps > maxsteps
             warn("""
             Maximum number of integration steps reached; exiting.
