@@ -1,10 +1,7 @@
 # TaylorIntegration.jl
 
-[![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.4.svg)](http://pkg.julialang.org/?pkg=TaylorIntegration) [![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.5.svg)](http://pkg.julialang.org/?pkg=TaylorIntegration) [![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.6.svg)](http://pkg.julialang.org/?pkg=TaylorIntegration)
+[![Build Status](https://travis-ci.org/PerezHz/TaylorIntegration.jl.svg?branch=master)](https://travis-ci.org/PerezHz/TaylorIntegration.jl) [![Build status](https://ci.appveyor.com/api/projects/status/21kovkl598vbbt85/branch/master?svg=true)](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/master) [![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=master)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=master) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
 
-[![Build Status](https://travis-ci.org/PerezHz/TaylorIntegration.jl.svg?branch=master)](https://travis-ci.org/PerezHz/TaylorIntegration.jl) [![Build status](https://ci.appveyor.com/api/projects/status/21kovkl598vbbt85/branch/master?svg=true)](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/master)
-
-[![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=master)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=master) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
 
 
 ODE integration using Taylor's method in [Julia](http://julialang.org).
@@ -17,10 +14,6 @@ Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 
 Comments, suggestions, and improvements are welcome and appreciated.
-
-#### Basic usage
-
-...
 
 #### Examples
 
