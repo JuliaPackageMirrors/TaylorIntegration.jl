@@ -58,7 +58,8 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
 end
 
 doc"""
-Experimental version of jetcoeffs!, will be better
+Experimental version of jetcoeffs!, where `xaux` and `xdot` are passed by
+reference. This was done searching for performance. Will be better
 documented in the future, if it works well. -JAPH
 """
 function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}},
